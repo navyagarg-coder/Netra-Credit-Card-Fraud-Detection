@@ -1,4 +1,4 @@
-# 6 (Netra - Credit Card Fraud Detection System)
+# Netra - Credit Card Fraud Detection System
 
 <p align="center">
   <strong>Tuned XGBoost & Isolation Forest with Real-Time Web Dashboard</strong>
@@ -82,3 +82,183 @@ XGBoost Model                  IsoForest Model
                       │
                       ▼
            Flask UI & SQLite Database
+```
+
+---
+
+## 🛠 Technologies Used
+
+| Technology | Purpose |
+| :--- | :--- |
+| **Python 3.13** | Core language for machine learning & backend logic |
+| **Flask** | Web framework & REST API endpoints |
+| **XGBoost** | Tuned supervised classification model |
+| **Scikit-learn** | Isolation Forest, RobustScaler, & metrics evaluation |
+| **Pandas / NumPy** | Data manipulation and matrix operations |
+| **SQLite** | Lightweight database for transaction history and logs |
+| **HTML / CSS / JavaScript** | Responsive web dashboard and live stream frontend |
+| **Joblib** | Model and scaler state serialization |
+| **Git / GitHub** | Version control & reports posting |
+
+---
+
+## 📊 Model Performance
+
+Evaluated on a held-out test set of **56,746 transactions**:
+
+| Metric | Untuned XGBoost | Tuned XGBoost |
+| :--- | :---: | :---: |
+| **Precision** | 0.9259 | **0.9863** |
+| **Recall** | 0.7895 | 0.7579 |
+| **F1-Score** | 0.8523 | **0.8571** |
+| **ROC-AUC** | 0.9631 | **0.9745** |
+| **PR-AUC** | 0.8143 | **0.8157** |
+
+---
+
+## ⚙️ How It Works
+
+1. **Preprocessing:** Scales `Time` and `Amount` using `RobustScaler` trained on training split data.
+2. **Scoring:** Calculates fraud probability via XGBoost hyper-parameter tuned weights.
+3. **Risk Categorization:**
+   - **HIGH Risk:** Fraud Probability >= 0.9411
+   - **MEDIUM Risk:** Fraud Probability between 0.3000 and 0.9411
+   - **LOW Risk:** Fraud Probability < 0.3000
+
+---
+
+## 📁 Project Structure
+
+```text
+Netra-Credit-Card-Fraud-Detection/
+├── app.py                  # Main Flask web application
+├── make_live_pool.py       # Live stream transaction builder
+├── data/
+│   ├── live_pool.csv       # Stream transaction pool
+│   ├── sample_fraud.csv    # Sample test data (Fraud)
+│   └── sample_normal.csv   # Sample test data (Normal)
+├── model/
+│   ├── xgb_model.json      # Tuned XGBoost model weights
+│   ├── scaler.pkl          # RobustScaler state
+│   ├── iso_forest.pkl      # Trained Isolation Forest model
+│   └── metrics.json        # Evaluation metadata & thresholds
+├── modules/
+│   ├── preprocessing.py    # Data cleaning & transformation
+│   ├── predictor.py        # Model inference pipeline
+│   ├── risk.py             # Threshold rules
+│   ├── batch.py            # CSV file processor
+│   └── database.py         # SQLite connection manager
+├── screenshots/            # Dashboard application screenshots
+│   ├── Screenshot 2026-10-01 155101.png
+│   ├── Screenshot 2026-10-01 155123.png
+│   ├── Screenshot 2026-10-01 155140.png
+│   ├── Screenshot 2026-10-01 155202.png
+│   └── Screenshot 2026-10-01 155230.png
+├── static/                 # Stylesheets & client scripts
+├── templates/              # Jinja2 HTML views
+├── .gitignore
+└── README.md
+```
+
+---
+
+## 🏗 System Architecture
+
+```text
+                   ┌─────────────────┐
+                   │ User / Analyst  │
+                   └────────┬────────┘
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │  Web Interface  │
+                   │ (HTML + CSS + JS)│
+                   └────────┬────────┘
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │  Flask Backend  │
+                   │   (Python 3)    │
+                   └────────┬────────┘
+                            │
+            ┌───────────────┴───────────────┐
+            ▼                               ▼
+ ┌─────────────────────┐         ┌─────────────────────┐
+ │ Preprocessing Unit  │         │  SQLite Data Store  │
+ │   (RobustScaler)    │         │  (History & Logs)   │
+ └──────────┬──────────┘         └─────────────────────┘
+            │
+            ▼
+ ┌─────────────────────┬─────────────────────┐
+ │    XGBoost Model    │ Isolation Forest    │
+ └──────────┬──────────┴──────────┬──────────┘
+            │                     │
+            └───────────┬─────────┘
+                        ▼
+             ┌─────────────────────┐
+             │  Analyst Dashboard  │
+             └─────────────────────┘
+```
+
+---
+
+## 🔐 Limitations
+
+- Trained on the ULB Kaggle dataset (V1–V28 PCA-transformed features).
+- High-level decision threshold (0.9411) prioritizes high precision over high recall.
+- Requires integration with active banking APIs for live production core-banking deployment.
+- Offline SQLite storage is meant for demonstration and academic evaluation.
+
+---
+
+## 🔮 Future Scope
+
+- 🌐 REST API expansion for external payment gateway integration.
+- 🧠 Deep Learning models (Autoencoders / Graph Neural Networks) for sequence fraud detection.
+- 👤 Cardholder behavioral profiling and transaction location anomaly matching.
+- ☁ Production deployment on AWS/GCP with scalable PostgreSQL database.
+
+---
+
+## 🎓 Academic Context
+
+| Field | Details |
+| :--- | :--- |
+| **Project** | Netra — Credit Card Fraud Detection System |
+| | |
+| **Student** | Navya Garg |
+| **Branch / Year** | Computer Science & Engineering (3rd Year) |
+| **Institute** | Dr. A.P.J. Abdul Kalam Technical University (AKTU) |
+
+---
+
+## 👨‍💻 Author
+
+**Navya Garg**  
+*B.Tech — Computer Science & Engineering*  
+Dr. A.P.J. Abdul Kalam Technical University (AKTU)
+
+---
+
+## 📜 License
+
+This project is developed for academic and demonstration purposes.
+
+---
+
+## 🖥️ Project Screenshots
+
+### 🖼️️ Landing Page
+![Landing Page](screenshots/Screenshot%202026-10-01%20155101.png)
+
+### ✨ Features Overview
+![Key Features](screenshots/Screenshot%202026-10-01%20155230.png)
+
+### 📊 Fraud Monitoring Dashboard
+![Dashboard](screenshots/Screenshot%202026-10-01%20155123.png)
+
+### 📡 Live Payment Stream
+![Live Monitor](screenshots/Screenshot%202026-10-01%20155202.png)
+
+### 📈 Model Performance & Metrics
+![Model Metrics](screenshots/Screenshot%202026-10-01%20155140.png)
