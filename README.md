@@ -1,7 +1,15 @@
-# 6 (Netra - Credit Card Fraud Detection System)
+# Netra - Credit Card Fraud Detection System
 
 <p align="center">
   <strong>Tuned XGBoost & Isolation Forest with Real-Time Web Dashboard</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-Web%20App-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/XGBoost-Supervised%20ML-189AB4?style=for-the-badge" alt="XGBoost">
+  <img src="https://img.shields.io/badge/scikit--learn-1.6.1-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="scikit-learn">
+  <img src="https://img.shields.io/badge/SQLite-Database-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite">
 </p>
 
 ---
