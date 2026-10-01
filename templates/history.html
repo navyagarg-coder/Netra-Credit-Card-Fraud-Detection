@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head"><h1>Transaction History</h1><p>Search, filter and sort every transaction checked.</p></div>
+<div class="card">
+  <div class="table-tools">
+    <input type="text" id="q" placeholder="Search by ID or amount...">
+    <select id="risk"><option value="ALL">All risk levels</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select>
+    <select id="pred"><option value="ALL">All predictions</option><option>FRAUD</option><option>NORMAL</option></select>
+    <select id="per"><option>10</option><option>25</option><option>50</option></select>
+    <button class="btn" id="export">Export CSV</button>
+  </div>
+  <table>
+    <thead><tr>
+      <th class="sortable" data-k="id">ID</th><th class="sortable" data-k="amount">Amount</th><th>Prediction</th>
+      <th class="sortable" data-k="prob">Probability</th><th>Risk</th><th>Review</th><th class="sortable" data-k="time">Time</th>
+    </tr></thead>
+    <tbody id="tbody">
+      {% for r in rows %}
+      <tr data-id="{{ r.id }}" data-amount="{{ r.amount }}" data-prob="{{ r.probability }}" data-time="{{ r.created_at }}" data-risk="{{ r.risk_level }}" data-pred="{{ r.prediction }}">
+        <td>{{ r.id }}</td><td>${{ r.amount }}</td><td>{{ r.prediction }}</td>
+        <td>{{ (r.probability * 100)|round(2) }}%</td>
+        <td><span class="badge {{ r.risk_level|lower }}">{{ r.risk_level }}</span></td>
+        <td>{{ r.review_status }}</td><td>{{ r.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p id="empty" class="muted" style="display:none">No matching transactions.</p>
+  <div class="pager"><span id="info" class="muted"></span>
+    <div><button class="btn" id="prev">‹ Prev</button> <button class="btn" id="next">Next ›</button></div></div>
+</div>
+<script>
+(function () {
+  var rows = [].slice.call(document.querySelectorAll('#tbody tr')), s = {page: 1, k: 'id', dir: -1};
+  var $ = function (i) { return document.getElementById(i); };
+  function filtered() {
+    var q = $('q').value.trim().toLowerCase(), risk = $('risk').value, pred = $('pred').value;
+    var l = rows.filter(function (r) {
+      if (risk !== 'ALL' && r.dataset.risk !== risk) return false;
+      if (pred !== 'ALL' && r.dataset.pred !== pred) return false;
+      if (q && (r.dataset.id + ' ' + r.dataset.amount).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    l.sort(function (a, b) {
+      var x = a.dataset[s.k], y = b.dataset[s.k];
+      if (s.k !== 'time') { x = parseFloat(x); y = parseFloat(y); }
+      return (x > y ? 1 : x < y ? -1 : 0) * s.dir;
+    });
+    return l;
+  }
+  function render() {
+    var l = filtered(), per = +$('per').value, pages = Math.max(1, Math.ceil(l.length / per));
+    if (s.page > pages) s.page = pages;
+    rows.forEach(function (r) { r.style.display = 'none'; });
+    l.slice((s.page - 1) * per, s.page * per).forEach(function (r) { r.style.display = ''; $('tbody').appendChild(r); });
+    $('info').textContent = l.length + ' results · page ' + s.page + ' of ' + pages;
+    $('empty').style.display = l.length ? 'none' : 'block';
+    $('prev').disabled = s.page <= 1; $('next').disabled = s.page >= pages;
+  }
+  ['q', 'risk', 'pred', 'per'].forEach(function (i) { $(i).addEventListener('input', function () { s.page = 1; render(); }); });
+  $('prev').onclick = function () { s.page--; render(); };
+  $('next').onclick = function () { s.page++; render(); };
+  document.querySelectorAll('th.sortable').forEach(function (th) {
+    th.onclick = function () {
+      if (s.k === th.dataset.k) s.dir *= -1; else { s.k = th.dataset.k; s.dir = -1; }
+      render();
+    };
+  });
+  $('export').onclick = function () {
+    var out = ['id,amount,prediction,probability,risk,review,time'];
+    filtered().forEach(function (r) {
+      out.push([r.dataset.id, r.dataset.amount, r.dataset.pred, r.dataset.prob, r.dataset.risk,
+                r.children[5].textContent.trim(), r.dataset.time].join(','));
+    });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([out.join('\n')], {type: 'text/csv'}));
+    a.download = 'netra_history.csv'; a.click();
+  };
+  render();
+})();
+</script>
+{% endblock %}

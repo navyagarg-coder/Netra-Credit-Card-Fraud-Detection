@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="hero">
+  <span class="chip-logo big">{% include '_logo.html' %}</span>
+  <div>
+    <h1>Fraud monitoring overview</h1>
+    <p>Every transaction is scored by XGBoost and checked by Isolation Forest for unusual behavior.</p>
+  </div>
+  <div class="hero-actions">
+    <a href="/live" class="btn light">Open Live Monitor</a>
+    <a href="/predict" class="btn light">Check a transaction</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="kpi"><div><span>Total checked</span><b data-count="{{ stats.total }}">0</b></div>
+    <div class="ico b"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
+  <div class="kpi"><div><span>Normal</span><b data-count="{{ stats.normal }}">0</b></div>
+    <div class="ico g"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+  <div class="kpi"><div><span>Suspicious</span><b data-count="{{ stats.fraud }}">0</b></div>
+    <div class="ico r"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div></div>
+  <div class="kpi"><div><span>Fraud rate</span><b data-count="{{ stats.fraud_percent }}" data-suffix="%">0</b></div>
+    <div class="ico o"><svg viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div></div>
+  <div class="kpi"><div><span>High risk</span><b data-count="{{ stats.high_risk }}">0</b></div>
+    <div class="ico r"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div></div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>Fraud trend (per day)</h3>
+    {% if trend %}
+    <div class="chart">
+      {% for t in trend %}
+      <div class="col">
+        <div class="bars"><div class="b-total" style="height: {{ t.h }}%"></div>
+          <div class="b-fraud" style="height: {{ t.fh }}%"></div></div>
+        <small>{{ t.day[5:] }}</small><small><b>{{ t.fraud }}</b>/{{ t.total }}</small>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="legend"><i class="d blue"></i> All <i class="d red"></i> Fraud</p>
+    {% else %}<p class="muted">No data yet. Open the Live Monitor to generate some.</p>{% endif %}
+  </div>
+
+  <div class="card center">
+    <h3>Fraud vs Normal</h3>
+    <div class="donut" style="--p: {{ stats.fraud_percent }}%"><i>{{ stats.fraud_percent }}%<small>fraud</small></i></div>
+    <p class="legend"><i class="d red"></i> Suspicious {{ stats.fraud }} <i class="d green"></i> Normal {{ stats.normal }}</p>
+  </div>
+</div>
+
+<div class="two-col even">
+  <div class="card">
+    <h3>Risk distribution</h3>
+    {% for r in risk %}
+    <div class="rk"><span class="name">{{ r.name }}</span>
+      <div class="track"><div class="{{ r.key }}" style="width: {{ r.pct }}%"></div></div><b>{{ r.n }}</b></div>
+    {% endfor %}
+    <p class="muted small">High risk goes to the Review Queue automatically.</p>
+  </div>
+
+  <div class="card">
+    <div class="row-between"><h3>Top suspicious transactions</h3><a href="/review" class="btn">Review queue</a></div>
+    {% for r in top %}
+    <div class="row-item">
+      <div><b>#{{ r.id }}</b><small>${{ r.amount }}</small></div>
+      <div class="mini-bar"><div style="width: {{ r.probability * 100 }}%"></div></div>
+      <span class="badge {{ r.risk_level|lower }}">{{ (r.probability * 100)|round(1) }}%</span>
+    </div>
+    {% else %}<p class="muted">Nothing yet.</p>{% endfor %}
+  </div>
+</div>
+
+<div class="stats four">
+  <div class="stat"><span>Recall</span><b>{{ (m.recall * 100)|round(1) }}%</b></div>
+  <div class="stat"><span>Precision</span><b>{{ (m.precision * 100)|round(1) }}%</b></div>
+  <div class="stat"><span>F1 score</span><b>{{ (m.f1 * 100)|round(1) }}%</b></div>
+  <div class="stat"><span>PR-AUC</span><b>{{ (m.pr_auc * 100)|round(1) }}%</b></div>
+</div>
+
+<div class="card">
+  <div class="row-between"><h3>Recent transactions</h3><a href="/history" class="btn">View all</a></div>
+  <table>
+    <tr><th>ID</th><th>Amount</th><th>Prediction</th><th>Probability</th><th>Risk</th><th>Time</th></tr>
+    {% for r in recent %}
+    <tr><td>{{ r.id }}</td><td>${{ r.amount }}</td><td>{{ r.prediction }}</td>
+      <td>{{ (r.probability * 100)|round(2) }}%</td>
+      <td><span class="badge {{ r.risk_level|lower }}">{{ r.risk_level }}</span></td>
+      <td>{{ r.created_at }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No transactions yet.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

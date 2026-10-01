@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head"><h1>Check a Transaction</h1>
+  <p>Load a sample or type the values, then click Check.</p></div>
+
+{% if error %}<div class="alert">{{ error }}</div>{% endif %}
+
+{% if result %}
+<div class="card result {{ result.risk_level|lower }}">
+  <div>
+    <span class="badge {{ result.risk_level|lower }}">{{ result.risk_level }} RISK</span>
+    <h2>{{ 'Suspicious transaction' if result.prediction == 'FRAUD' else 'Looks normal' }}</h2>
+        <p>Anomaly check: <b>{{ result.anomaly_flag }}</b> (score {{ result.anomaly_score }}/100)</p>
+  </div>
+  <div class="prob">
+    <div class="prob-num">{{ (result.probability * 100)|round(2) }}%</div>
+    <div class="bar"><div style="width: {{ result.probability * 100 }}%"></div></div>
+    <small>Fraud probability</small>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" class="card">
+  <div class="toolbar">
+    <button type="button" class="btn red" onclick="fillForm(fraudSample)">⚠️ Fraud sample</button>
+    <button type="button" class="btn green" onclick="fillForm(normalSample)">✅ Normal sample</button>
+    <button type="button" class="btn" onclick="clearForm()">Clear</button>
+  </div>
+  <div class="grid two">
+    {% for f in features if f in ['Time', 'Amount'] %}
+    <label>{{ f }}<input type="text" name="{{ f }}" id="{{ f }}" value="{{ request.form.get(f, '') }}"></label>
+    {% endfor %}
+  </div>
+  <details>
+    <summary>Advanced features (V1 to V28)</summary>
+    <div class="grid">
+      {% for f in features if f not in ['Time', 'Amount'] %}
+      <label>{{ f }}<input type="text" name="{{ f }}" id="{{ f }}" value="{{ request.form.get(f, '') }}"></label>
+      {% endfor %}
+    </div>
+  </details>
+  <button class="btn primary big">Check Transaction</button>
+</form>
+
+<script>
+const fraudSample = {{ fraud_sample|tojson }};
+const normalSample = {{ normal_sample|tojson }};
+function fillForm(s) { for (const k in s) { const e = document.getElementById(k); if (e) e.value = s[k]; } }
+function clearForm() { document.querySelectorAll('form input[type=text]').forEach(e => e.value = ''); }
+</script>
+{% endblock %}

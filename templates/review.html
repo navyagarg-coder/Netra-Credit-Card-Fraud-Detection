@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head"><h1>Review Queue</h1>
+  <p>High-risk transactions ranked by expected loss (amount × fraud probability).</p></div>
+
+{% set done = c.confirmed + c.false_alarm %}
+<div class="stats four">
+  <div class="stat"><span>Pending review</span><b>{{ c.pending }}</b></div>
+  <div class="stat"><span>Expected loss at stake</span><b class="r">${{ c.loss }}</b></div>
+  <div class="stat"><span>Reviewed so far</span><b>{{ done }}</b></div>
+  <div class="stat"><span>Alert accuracy</span>
+    <b>{% if done %}{{ (100 * c.confirmed / done)|round(1) }}%{% else %}-{% endif %}</b></div>
+</div>
+
+<div class="card">
+  <h3>{{ rows|length }} pending</h3>
+  <table>
+    <tr><th>Rank</th><th>ID</th><th>Amount</th><th>Probability</th><th>Expected loss</th><th>Time</th><th>Decision</th></tr>
+    {% for r in rows %}
+    <tr><td><span class="rank">{{ loop.index }}</span></td><td>#{{ r.id }}</td><td>${{ r.amount }}</td>
+      <td><span class="badge high">{{ (r.probability * 100)|round(1) }}%</span></td>
+      <td><b>${{ r.loss }}</b></td><td>{{ r.created_at }}</td>
+      <td>
+        <form method="post" class="inline">
+          <input type="hidden" name="id" value="{{ r.id }}">
+          <button name="status" value="Confirmed Fraud" class="btn red">Confirm fraud</button>
+          <button name="status" value="False Alarm" class="btn green">False alarm</button>
+        </form>
+      </td></tr>
+    {% else %}<tr><td colspan="7" class="muted">Nothing to review right now.</td></tr>{% endfor %}
+  </table>
+  <p class="muted small">Alert accuracy = share of reviewed alerts that were real fraud.</p>
+</div>
+{% endblock %}

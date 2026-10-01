@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head"><h1>⚡ Live Monitor</h1>
+  <p>Transactions arrive automatically and are checked one by one, like in a real payment system.</p></div>
+
+<div class="card toolbar">
+  <button id="toggle" class="btn primary" onclick="toggle()">▶ Start monitoring</button>
+  <select id="speed">
+    <option value="1000">Fast (1 sec)</option>
+    <option value="2000" selected>Normal (2 sec)</option>
+    <option value="4000">Slow (4 sec)</option>
+  </select>
+  <span id="status" class="muted">Stopped</span>
+</div>
+
+<div id="alertbox" class="alert" style="display:none"></div>
+
+<div class="stats">
+  <div class="stat"><span>Checked</span><b id="c-total">0</b></div>
+  <div class="stat"><span>Approved</span><b class="g" id="c-ok">0</b></div>
+  <div class="stat"><span>Sent for review</span><b id="c-review">0</b></div>
+  <div class="stat"><span>Blocked</span><b class="r" id="c-blocked">0</b></div>
+  <div class="stat"><span>Amount blocked</span><b class="r" id="c-amt">$0</b></div>
+</div>
+
+<div class="card">
+  <h3>Live feed (latest 15)</h3>
+  <table>
+    <tr><th>#</th><th>Time</th><th>Amount</th><th>Fraud probability</th><th>Decision</th></tr>
+    <tbody id="feed"></tbody>
+  </table>
+</div>
+
+<script>
+let timer = null;
+const n = {total: 0, ok: 0, review: 0, blocked: 0, amt: 0};
+const $ = id => document.getElementById(id);
+
+async function tick() {
+  try {
+    const d = await (await fetch('/api/simulate')).json();
+    n.total++;
+    let decision = 'APPROVED', cls = 'low';
+    if (d.risk_level === 'HIGH') {
+      decision = 'BLOCKED'; cls = 'high'; n.blocked++; n.amt += d.amount; showAlert(d);
+    } else if (d.risk_level === 'MEDIUM') {
+      decision = 'REVIEW'; cls = 'medium'; n.review++;
+    } else { n.ok++; }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${n.total}</td><td>${new Date().toLocaleTimeString()}</td>
+      <td>$${d.amount.toFixed(2)}</td><td>${(d.probability * 100).toFixed(2)}%</td>
+      <td><span class="badge ${cls}">${decision}</span></td>`;
+    $('feed').prepend(tr);
+    while ($('feed').children.length > 15) $('feed').removeChild($('feed').lastChild);
+
+    $('c-total').textContent = n.total;
+    $('c-ok').textContent = n.ok;
+    $('c-review').textContent = n.review;
+    $('c-blocked').textContent = n.blocked;
+    $('c-amt').textContent = '$' + n.amt.toFixed(2);
+  } catch (e) {
+    stop(); $('status').textContent = 'Error. Check the terminal.';
+  }
+}
+
+function showAlert(d) {
+  const a = $('alertbox');
+  a.textContent = `⚠️ High-risk transaction blocked: $${d.amount.toFixed(2)} (${(d.probability * 100).toFixed(1)}% fraud probability)`;
+  a.style.display = 'block';
+  setTimeout(() => a.style.display = 'none', 3000);
+}
+
+function start() {
+  tick();
+  timer = setInterval(tick, +$('speed').value);
+  $('toggle').textContent = '⏸ Stop monitoring';
+  $('status').textContent = '🟢 Monitoring live...';
+}
+function stop() {
+  clearInterval(timer); timer = null;
+  $('toggle').textContent = '▶ Start monitoring';
+  $('status').textContent = 'Stopped';
+}
+function toggle() { timer ? stop() : start(); }
+$('speed').onchange = () => { if (timer) { clearInterval(timer); timer = setInterval(tick, +$('speed').value); } };
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head"><h1>Model Performance</h1>
+  <p>Real results from testing the tuned XGBoost model on unseen data.</p></div>
+
+<div class="stats">
+  <div class="stat"><span>Accuracy</span><b>{{ (m.accuracy * 100)|round(2) }}%</b></div>
+  <div class="stat"><span>Precision</span><b>{{ (m.precision * 100)|round(1) }}%</b></div>
+  <div class="stat"><span>Recall</span><b>{{ (m.recall * 100)|round(1) }}%</b></div>
+  <div class="stat"><span>F1 score</span><b>{{ (m.f1 * 100)|round(1) }}%</b></div>
+  <div class="stat"><span>ROC-AUC</span><b>{{ (m.roc_auc * 100)|round(1) }}%</b></div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>Confusion matrix</h3>
+    <div class="cm">
+      <div class="cell g"><b>{{ m.confusion_matrix[0][0] }}</b><small>Normal, correct</small></div>
+      <div class="cell o"><b>{{ m.confusion_matrix[0][1] }}</b><small>False alarms</small></div>
+      <div class="cell r"><b>{{ m.confusion_matrix[1][0] }}</b><small>Missed fraud</small></div>
+      <div class="cell g"><b>{{ m.confusion_matrix[1][1] }}</b><small>Fraud caught</small></div>
+    </div>
+    <p class="muted">Decision threshold: <b>{{ m.threshold }}</b></p>
+  </div>
+
+  <div class="card">
+    <h3>Untuned vs tuned model</h3>
+    <table>
+      <tr><th>Metric</th><th>Untuned</th><th>Tuned</th></tr>
+      <tr><td>Precision</td><td>{{ m.baseline.precision }}</td><td>{{ m.precision }}</td></tr>
+      <tr><td>Recall</td><td>{{ m.baseline.recall }}</td><td>{{ m.recall }}</td></tr>
+      <tr><td>F1</td><td>{{ m.baseline.f1 }}</td><td>{{ m.f1 }}</td></tr>
+      <tr><td>PR-AUC</td><td>{{ m.baseline.pr_auc }}</td><td>{{ m.pr_auc }}</td></tr>
+    </table>
+  </div>
+</div>
+<div class="card">
+  <h3>Anomaly detection vs supervised model</h3>
+  <table>
+    <tr><th>Metric</th><th>Isolation Forest</th><th>Autoencoder</th><th>XGBoost (supervised)</th></tr>
+    <tr><td>Precision</td><td>{{ m.anomaly.precision }}</td><td>{{ m.autoencoder.precision }}</td><td>{{ m.precision }}</td></tr>
+    <tr><td>Recall</td><td>{{ m.anomaly.recall }}</td><td>{{ m.autoencoder.recall }}</td><td>{{ m.recall }}</td></tr>
+    <tr><td>F1</td><td>{{ m.anomaly.f1 }}</td><td>{{ m.autoencoder.f1 }}</td><td>{{ m.f1 }}</td></tr>
+    <tr><td>PR-AUC</td><td>{{ m.anomaly.pr_auc }}</td><td>{{ m.autoencoder.pr_auc }}</td><td>{{ m.pr_auc }}</td></tr>
+  </table>
+  <p class="muted">Anomaly detection finds unusual transactions without using fraud labels. XGBoost learns from labeled fraud, so it is more precise.</p>
+</div>
+
+<div class="card">
+  <h3>Dataset</h3>
+  <p>Rows before cleaning: <b>{{ m.rows_before_cleaning }}</b> · Duplicates removed:
+    <b>{{ m.duplicates_removed }}</b> · Training rows: <b>{{ m.train_rows }}</b> ·
+    Test rows: <b>{{ m.test_rows }}</b></p>
+  <p class="muted">Accuracy looks very high because fraud is rare, so Precision, Recall and F1 are the main measures.</p>
+</div>
+{% endblock %}

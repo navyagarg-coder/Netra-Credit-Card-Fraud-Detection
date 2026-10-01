@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head"><h1>Upload CSV</h1>
+  <p>Check many transactions at once. The file needs Time, V1 to V28 and Amount.</p></div>
+
+{% if error %}<div class="alert">{{ error }}</div>{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="card">
+  <label class="dropzone" id="dz">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <b id="dz-text">Drop your CSV here or click to browse</b>
+    <span class="muted small">Columns needed: Time, V1 to V28, Amount</span>
+    <input type="file" name="file" id="file" accept=".csv" required>
+  </label>
+  <div class="row-between">
+    <a href="/sample.csv" class="btn">Download sample CSV</a>
+    <button class="btn primary">Analyze file</button>
+  </div>
+</form>
+
+{% if summary %}
+<div class="stats">
+  <div class="stat"><span>Total</span><b>{{ summary.total }}</b></div>
+  <div class="stat"><span>Normal</span><b class="g">{{ summary.normal }}</b></div>
+  <div class="stat"><span>Suspicious</span><b class="r">{{ summary.fraud }}</b></div>
+  <div class="stat"><span>Fraud %</span><b>{{ summary.fraud_percent }}%</b></div>
+  <div class="stat"><span>High risk</span><b class="r">{{ summary.high_risk }}</b></div>
+</div>
+<div class="card">
+  <div class="row-between"><h3>Results (first 200 rows)</h3>
+    <a class="btn primary" href="/download">Download full CSV</a></div>
+  <table>
+    <tr><th>#</th><th>Amount</th><th>Probability</th><th>Prediction</th><th>Risk</th></tr>
+    {% for r in rows %}
+    <tr><td>{{ loop.index }}</td><td>${{ r.Amount }}</td><td>{{ (r.fraud_probability * 100)|round(2) }}%</td>
+      <td>{{ r.prediction }}</td><td><span class="badge {{ r.risk_level|lower }}">{{ r.risk_level }}</span></td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<script>
+var dz = document.getElementById('dz'), file = document.getElementById('file'), txt = document.getElementById('dz-text');
+file.onchange = function () { if (file.files.length) txt.textContent = file.files[0].name; };
+['dragenter', 'dragover'].forEach(function (e) {
+  dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.add('over'); });
+});
+['dragleave', 'drop'].forEach(function (e) {
+  dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.remove('over'); });
+});
+dz.addEventListener('drop', function (ev) { file.files = ev.dataTransfer.files; file.onchange(); });
+</script>
+{% endblock %}
