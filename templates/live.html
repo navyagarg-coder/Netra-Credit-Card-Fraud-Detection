@@ -10,7 +10,7 @@
     <option value="2000" selected>Normal (2 sec)</option>
     <option value="4000">Slow (4 sec)</option>
   </select>
-  <span id="status" class="muted">Stopped</span>
+  <span id="live-status" class="muted">Stopped</span>
 </div>
 
 <div id="alertbox" class="alert" style="display:none"></div>
@@ -60,7 +60,7 @@ async function tick() {
     $('c-blocked').textContent = n.blocked;
     $('c-amt').textContent = '$' + n.amt.toFixed(2);
   } catch (e) {
-    stop(); $('status').textContent = 'Error. Check the terminal.';
+    stop(); $('live-status').textContent = 'Error. Check the terminal.';
   }
 }
 
@@ -75,12 +75,12 @@ function start() {
   tick();
   timer = setInterval(tick, +$('speed').value);
   $('toggle').textContent = '⏸ Stop monitoring';
-  $('status').textContent = '🟢 Monitoring live...';
+  $('live-status').textContent = '🟢 Monitoring live...';
 }
 function stop() {
   clearInterval(timer); timer = null;
   $('toggle').textContent = '▶ Start monitoring';
-  $('status').textContent = 'Stopped';
+  $('live-status').textContent = 'Stopped';
 }
 function toggle() { timer ? stop() : start(); }
 $('speed').onchange = () => { if (timer) { clearInterval(timer); timer = setInterval(tick, +$('speed').value); } };

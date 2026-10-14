@@ -1,8 +1,14 @@
 import os
 import json
+import math
+import uuid
 import random
+from functools import lru_cache
+
 import pandas as pd
-from flask import Flask, render_template, request, Response, redirect, jsonify
+from flask import (Flask, render_template, request, Response, redirect,
+                   jsonify, session)
+
 from modules.preprocessing import FEATURES
 from modules.predictor import predict_one
 from modules.batch import predict_csv
@@ -11,21 +17,55 @@ from modules.database import (save_prediction, get_history, get_stats, get_revie
                               get_review_counts)
 
 app = Flask(__name__)
-LAST = {'df': None}
+# Needed so each browser gets its own session (used for the CSV download).
+app.secret_key = os.environ.get('NETRA_SECRET', 'change-this-secret-before-deploying')
+# Block uploads bigger than 5 MB.
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
-POOL = pd.read_csv('data/live_pool.csv')
+# ---------- startup check ----------
+POOL_PATH = os.path.join('data', 'live_pool.csv')
+if not os.path.exists(POOL_PATH):
+    raise SystemExit(
+        'data/live_pool.csv is missing.\n'
+        'Put creditcard.csv inside the data/ folder and run:  python make_live_pool.py'
+    )
+
+POOL = pd.read_csv(POOL_PATH)
 NORMAL_POOL = POOL[POOL['Class'] == 0]
 FRAUD_POOL = POOL[POOL['Class'] == 1]
 
+# Last uploaded result for EACH user (key = their session id).
+LAST = {}
 
-def load_sample(name):
-    return pd.read_csv(f'data/{name}.csv').iloc[0].to_dict()
+
+def _user_id():
+    if 'rid' not in session:
+        session['rid'] = uuid.uuid4().hex
+    return session['rid']
 
 
-def load_metrics():
+# ---------- cached file readers ----------
+@lru_cache(maxsize=1)
+def _metrics_cached():
     with open(os.path.join('model', 'metrics.json')) as f:
         return json.load(f)
 
+
+def load_metrics():
+    # Note: if you retrain and change metrics.json, restart the app.
+    return _metrics_cached()
+
+
+@lru_cache(maxsize=None)
+def _sample_cached(name):
+    return pd.read_csv(f'data/{name}.csv').iloc[0].to_dict()
+
+
+def load_sample(name):
+    return dict(_sample_cached(name))
+
+
+# ---------- pages ----------
 @app.route('/')
 def home():
     return render_template('landing.html', m=load_metrics())
@@ -37,11 +77,14 @@ def predict():
     if request.method == 'POST':
         try:
             row = {f: float(request.form[f]) for f in FEATURES}
+            # reject nan / inf
+            if not all(math.isfinite(v) for v in row.values()):
+                raise ValueError('not finite')
             result = predict_one(row)
             save_prediction(row['Amount'], result['prediction'],
                             result['probability'], result['risk_level'])
         except (ValueError, KeyError):
-            error = 'Please fill all 30 fields with numbers only.'
+            error = 'Please fill all 30 fields with valid numbers only.'
     return render_template('predict.html', features=FEATURES, result=result, error=error,
                            fraud_sample=load_sample('sample_fraud'),
                            normal_sample=load_sample('sample_normal'))
@@ -57,7 +100,7 @@ def upload():
         else:
             try:
                 result, summary = predict_csv(f)
-                LAST['df'] = result
+                LAST[_user_id()] = result
                 rows = result[['Amount', 'fraud_probability', 'prediction',
                                'risk_level']].head(200).to_dict('records')
             except ValueError as e:
@@ -65,11 +108,18 @@ def upload():
     return render_template('upload.html', rows=rows, summary=summary, error=error)
 
 
+@app.errorhandler(413)
+def file_too_big(e):
+    return render_template('upload.html', rows=None, summary=None,
+                           error='File is too large. Maximum size is 5 MB.'), 413
+
+
 @app.route('/download')
 def download():
-    if LAST['df'] is None:
+    df = LAST.get(session.get('rid'))
+    if df is None:
         return 'No results yet. Upload a file first.', 404
-    return Response(LAST['df'].to_csv(index=False), mimetype='text/csv',
+    return Response(df.to_csv(index=False), mimetype='text/csv',
                     headers={'Content-Disposition': 'attachment; filename=netra_results.csv'})
 
 
@@ -142,4 +192,6 @@ def simulate():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Debug is OFF by default. To turn it on while developing:
+    #   Windows (PowerShell):  $env:FLASK_DEBUG="1"; python app.py
+    app.run(debug=os.environ.get('FLASK_DEBUG') == '1')
