@@ -4,7 +4,7 @@ from modules.database import save_many
 
 
 def predict_csv(file, save=True):
-    """Read a CSV, predict every row, save to history, return (table, summary)."""
+    """Read a CSV, predict every row, save suspicious rows, return (table, summary)."""
     try:
         df = pd.read_csv(file)
     except Exception:
@@ -15,9 +15,15 @@ def predict_csv(file, save=True):
 
     result = predict_df(df)
 
+    saved = 0
     if save:
-        save_many(list(zip(result['Amount'], result['prediction'],
-                           result['fraud_probability'], result['risk_level'])))
+        # Only MEDIUM and HIGH rows are stored. LOW rows are not useful to keep,
+        # and storing thousands of them would flood the history page.
+        keep = result[result['risk_level'] != 'LOW']
+        rows = list(zip(keep['Amount'], keep['prediction'],
+                        keep['fraud_probability'], keep['risk_level']))
+        save_many(rows, source='batch')
+        saved = len(rows)
 
     total = len(result)
     fraud = int((result['prediction'] == 'FRAUD').sum())
@@ -27,5 +33,6 @@ def predict_csv(file, save=True):
         'normal': total - fraud,
         'fraud_percent': round(100 * fraud / total, 2),
         'high_risk': int((result['risk_level'] == 'HIGH').sum()),
+        'saved': saved,
     }
     return result, summary

@@ -187,7 +187,8 @@ def simulate():
     row = pool.sample(1).iloc[0].drop('Class').to_dict()
     result = predict_one(row)
     save_prediction(row['Amount'], result['prediction'],
-                    result['probability'], result['risk_level'])
+                    result['probability'], result['risk_level'],
+                    source='live')  # CHANGED: mark these rows as live-stream rows
     return jsonify({'amount': round(float(row['Amount']), 2), **result})
 
 
